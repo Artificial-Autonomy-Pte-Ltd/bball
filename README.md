@@ -185,3 +185,4 @@ columns — publish it to CSV and paste the URL into the Data tab to go live.
 | `bball_roster_template.csv` | The 13-player squad, ready to (re)import into Google Sheets |
 | `README.md` | This file |
 | `.gitignore` | Excludes Dropbox/OS junk and local backups |
+
