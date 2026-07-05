@@ -1,0 +1,23 @@
+# Dropbox junk
+.dropbox
+.dropbox.attr
+.dropbox.cache
+desktop.ini
+Icon?
+
+# OS junk
+.DS_Store
+Thumbs.db
+._*
+
+# Editor junk
+.vscode/
+.idea/
+*.swp
+
+# Local backups the app exports (don't commit rosters)
+bball-backup-*.json
+
+# Temp render/preview artifacts (not part of the site)
+_render.html
+_probe.txt

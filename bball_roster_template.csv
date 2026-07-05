@@ -1,0 +1,18 @@
+number,name,position,pos2,shooting,defense,playmaking,rebounding,iq,fitness,available,notes,hot_zones,type,parent,house
+1,Ah Liam,SF,,5,5,5,7,5,9,TRUE,"fit, fast, good with offensive rebounds",,adult,,Morrison
+4,Shihong,PF,PG,5,5,7,5,8,5,TRUE,"semi-coach, good understanding of game, left-handed",,adult,,Buckley
+5,Mah,,,5,5,5,5,5,5,TRUE,profile TBD,,adult,,Morrison
+6,Jinyang,SG,,7,5,5,5,5,5,TRUE,usually subs #10 (Wylie) out when #10 is tired; can shoot threes and make some in games,,adult,,Buckley
+7,Chau,SG,,5,7,5,7,5,5,TRUE,"strong; small, fast, left-handed",,adult,,Morrison
+8,Suku,SG,PG,8,5,7,5,5,9,TRUE,"good 3-point shooter, ball handler; fit, big minutes",,adult,,Morrison
+9,Leon,PG,,5,5,8,5,7,9,TRUE,"point guard, good court vision; fit, big minutes",,adult,,Morrison
+10,Wylie,,,5,5,5,5,5,5,TRUE,owner,,adult,,Hullett
+11,Edwin,C,,5,5,5,5,5,5,FALSE,"not in SG, not playing; Center when back",,adult,,Hullett
+12,Jeff,PF,,7,5,5,6,7,5,TRUE,"reliable, understands game well, stable paint scorer",,adult,,Morrison
+13,Timo,PF,,7,5,5,6,5,5,TRUE,"power forward, stable scoring in the paint",,adult,,Hullett
+14,Jiaren,C,,8,7,5,8,8,5,TRUE,"center, ex-national player, understand game well, stable, we need him for most of the points in the paint",,adult,,Hullett
+15,Kit,SF,,7,5,5,5,5,7,TRUE,"Tall, offensive scoring, hungry, quite fit, like to push offense",,adult,,Morrison
+19,Nic,PF,,5,8,5,7,5,5,TRUE,"strong, defensive strong player",,adult,,Buckley
+8.1,Ryan,,,,,,,,,TRUE,,,child,8,Morrison
+9.1,Noelle,,,,,,,,,TRUE,,,child,9,Morrison
+9.2,Renee,,,,,,,,,TRUE,,,child,9,Morrison

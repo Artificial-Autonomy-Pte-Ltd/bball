@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bball — Team Strategy</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2029; --panel2:#232b36; --line:#2f3947;
+    --text:#e6ebf1; --muted:#93a1b1; --accent:#ff7a2f; --accent2:#3aa0ff;
+    --good:#3ad07a; --warn:#ffcf4a; --bad:#ff5a5a; --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.45;-webkit-text-size-adjust:100%}
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#141a22,#0f1419);
+    border-bottom:1px solid var(--line);padding:10px 14px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand h1{font-size:20px;margin:0;letter-spacing:.5px}
+  .brand .ball{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ff9a4d,#e0561a);
+    position:relative;box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}
+  .brand small{color:var(--muted);font-size:12px}
+  nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  nav button{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    padding:8px 12px;border-radius:20px;font-size:13px;cursor:pointer}
+  nav button.active{background:var(--accent);border-color:var(--accent);color:#1a0f06;font-weight:600}
+  main{padding:14px;max-width:1100px;margin:0 auto}
+  .view{display:none} .view.active{display:block}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+  h2{font-size:17px;margin:0 0 10px} h3{font-size:14px;margin:0 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+  input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    padding:9px;border-radius:8px;font-size:14px;font-family:inherit}
+  textarea{min-height:90px;resize:vertical}
+  button{cursor:pointer}
+  .btn{background:var(--accent);color:#1a0f06;border:none;padding:10px 14px;border-radius:8px;font-weight:600;font-size:14px}
+  .btn.sec{background:var(--panel2);color:var(--text);border:1px solid var(--line);font-weight:500}
+  .btn.sm{padding:6px 10px;font-size:12px}
+  .btn.danger{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:120px}
+  .grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+  .pos{background:var(--accent2);color:#04121f}
+  .pos2{background:transparent;border:1px solid var(--accent2);color:var(--accent2);font-size:10px}
+  .tag-good{background:rgba(58,208,122,.15);color:var(--good)}
+  .tag-warn{background:rgba(255,207,74,.15);color:var(--warn)}
+  .tag-bad{background:rgba(255,90,90,.15);color:var(--bad)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase}
+  .num{text-align:center}
+  .muted{color:var(--muted)} .small{font-size:12px}
+  .flag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 7px;border-radius:6px;margin:2px 2px 0 0}
+  .avail-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .on{background:var(--good)} .off{background:var(--bad)}
+  .player-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+  .player-card .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .rate-mini{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--muted)}
+  .rate-mini b{color:var(--text)}
+  .pick{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--panel2)}
+  .pick.sel{border-color:var(--accent);background:rgba(255,122,47,.08)}
+  .pick input{width:auto;flex:none}
+  .statline{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .bar{height:8px;background:var(--panel2);border-radius:5px;overflow:hidden;flex:1;margin:0 10px;max-width:200px}
+  .bar>span{display:block;height:100%;background:var(--accent)}
+  .rot-grid{overflow-x:auto}
+  .rot-grid table{min-width:520px}
+  .cell-on{background:var(--accent);color:#1a0f06;font-weight:700;text-align:center;border-radius:4px}
+  .cell-off{color:var(--line);text-align:center}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:20px;overflow:auto}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;width:100%;max-width:520px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);
+    padding:10px 16px;border-radius:8px;font-size:13px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+  .banner{font-size:12px;padding:8px 10px;border-radius:8px;margin-bottom:10px}
+  .banner.local{background:rgba(255,207,74,.12);color:var(--warn);border:1px solid rgba(255,207,74,.3)}
+  .banner.live{background:rgba(58,208,122,.12);color:var(--good);border:1px solid rgba(58,208,122,.3)}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  @media(max-width:600px){ .brand h1{font-size:18px} th,td{padding:6px 4px} }
+
+  /* ---- Onboarding / Get In ---- */
+  .hero{background:linear-gradient(135deg,#1c2430,#12181f);border:1px solid var(--line);border-radius:16px;padding:20px 16px;text-align:center;margin-bottom:14px;position:relative;overflow:hidden}
+  .hero:before{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(255,122,47,.25),transparent 70%)}
+  .hero h2{font-size:24px;margin:0 0 6px;letter-spacing:.3px}
+  .hero p{color:var(--muted);margin:0 0 14px;font-size:14px}
+  .steps-dots{display:flex;justify-content:center;gap:8px;margin:14px 0}
+  .steps-dots i{width:9px;height:9px;border-radius:50%;background:var(--line);transition:.25s}
+  .steps-dots i.on{background:var(--accent);width:22px;border-radius:5px}
+  .step{display:none;animation:fade .3s ease} .step.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .step h3{color:var(--text);font-size:18px;text-transform:none;letter-spacing:0;margin-bottom:4px}
+  .step .sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .pos-pick{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .pos-pick button{flex:1;min-width:60px;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:12px 6px;border-radius:10px;font-weight:600}
+  .pos-pick button.sel{background:var(--accent);color:#1a0f06;border-color:var(--accent);transform:translateY(-2px)}
+  .pos-pick button small{display:block;font-weight:400;font-size:10px;color:var(--muted);margin-top:2px}
+  .pos-pick button.sel small{color:#5a3410}
+  .slider{margin:14px 0}
+  .slider .lab{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:4px}
+  .slider .lab b{font-weight:600} .slider .val{font-size:13px;color:var(--accent);font-weight:700}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:10px;border-radius:6px;
+    background:linear-gradient(90deg,var(--accent) var(--pct,50%),var(--panel2) var(--pct,50%));outline:none;padding:0;border:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;
+    background:#fff;border:3px solid var(--accent);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid var(--accent);cursor:pointer}
+  .wiz-nav{display:flex;gap:10px;margin-top:20px}
+  .wiz-nav .btn{flex:1;padding:14px}
+  .avail-toggle{display:flex;gap:8px;margin-top:6px}
+  .avail-toggle button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:600}
+  .avail-toggle button.sel.yes{background:var(--good);color:#04120a;border-color:var(--good)}
+  .avail-toggle button.sel.no{background:var(--bad);color:#fff;border-color:var(--bad)}
+  /* court */
+  .court-wrap{max-width:420px;margin:0 auto;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+  .court-wrap svg{width:100%;height:auto;display:block;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.45);cursor:crosshair}
+  .court-legend{display:flex;justify-content:center;gap:16px;margin-top:10px;font-size:12px;color:var(--muted)}
+  .court-legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot-like{width:14px;height:14px;border-radius:50%;background:var(--accent2);border:2px solid #fff}
+  .dot-love{width:20px;height:20px;border-radius:50%;background:var(--accent);border:2px solid #fff}
+  @keyframes pop{0%{transform:scale(.1);opacity:0}70%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
+  .shot-marker{transform-box:fill-box;transform-origin:center;animation:pop .3s cubic-bezier(.2,1.4,.4,1)}
+  .zone-chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:12px;margin:3px 3px 0 0}
+  .zone-chip.love{border-color:var(--accent);color:var(--accent)}
+  /* summary card */
+  .sumcard{background:linear-gradient(150deg,#20293a,#141a24);border:1px solid var(--line);border-radius:18px;padding:18px;position:relative;overflow:hidden}
+  .sumcard .badge{position:absolute;top:14px;right:14px;background:var(--accent);color:#1a0f06;font-weight:800;font-size:11px;padding:4px 10px;border-radius:20px;letter-spacing:.5px}
+  .sumcard h2{font-size:22px;margin:0}
+  .sumcard .arch{color:var(--accent);font-weight:700;font-size:13px;letter-spacing:.5px;text-transform:uppercase;margin:2px 0 12px}
+  .sum-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:10px 0}
+  .sum-stats .st{font-size:13px}
+  .sum-stats .st .b{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:3px}
+  .sum-stats .st .b>span{display:block;height:100%;background:var(--accent)}
+  /* shooting leaderboard */
+  .lb-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--panel2)}
+  .lb-row.lead{border-color:var(--accent);background:linear-gradient(90deg,rgba(255,122,47,.14),var(--panel2))}
+  .lb-rank{font-size:20px;min-width:34px;text-align:center;font-weight:800;color:var(--muted)}
+  .lb-name{flex:1;line-height:1.25}
+  .lb-pct{font-size:26px;font-weight:800;color:var(--accent);white-space:nowrap}
+  .lb-row.lead .lb-pct{color:#ffd27a}
+  /* team kids / next gen */
+  #nextGenCard{background:linear-gradient(150deg,#1d2733,#161d27);border-color:#2c3a2f}
+  .kid-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px dashed var(--line);border-radius:10px;margin-bottom:7px;background:var(--panel2)}
+  .kid-badge{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:30px;padding:0 8px;border-radius:8px;background:var(--good);color:#04120a;font-weight:800;font-size:13px}
+  .kid-tag{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--good);border:1px solid var(--good);border-radius:20px;padding:2px 8px}
+  /* houses */
+  .house-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;vertical-align:middle}
+  .h-Morrison{background:#2a6fd6;color:#fff}
+  .h-Buckley{background:#2c9c5c;color:#fff}
+  .h-Hullett{background:#11151b;color:#e6ebf1;border:1px solid #3a4351}
+  .house-chip.unassigned{background:transparent;border:1px dashed var(--warn);color:var(--warn)}
+  .vs-wrap{display:flex;gap:10px;align-items:stretch}
+  .squad{flex:1;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel2)}
+  .squad h3{margin:0 0 2px;font-size:15px;text-transform:none;letter-spacing:0}
+  .squad.mor{border-color:#2a6fd6;box-shadow:inset 0 2px 0 #2a6fd6}
+  .squad.rotw{border-color:#2c9c5c;box-shadow:inset 0 2px 0 #2c9c5c}
+  .squad .cnt{font-size:11px;color:var(--muted);margin-bottom:8px}
+  .sq-row{display:flex;align-items:center;gap:7px;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line)}
+  .sq-row:last-child{border-bottom:none}
+  .sq-row.out{opacity:.4;text-decoration:line-through}
+  .hdot{width:10px;height:10px;border-radius:50%;flex:none;border:1px solid rgba(255,255,255,.3)}
+  .vs-mid{display:flex;align-items:center;font-weight:800;color:var(--muted);font-size:13px;padding:0 2px}
+  .qtable{width:100%;border-collapse:collapse;margin-top:6px}
+  .qtable th,.qtable td{padding:6px;text-align:center;border-bottom:1px solid var(--line)}
+  .qtable input{width:64px;text-align:center;padding:6px;margin:0 auto}
+  .qtable .mor-col{color:#5b9bff;font-weight:700}
+  .qtable .rotw-col{color:#4bcf88;font-weight:700}
+  .qtable tr.tot td{font-weight:800;border-top:2px solid var(--line);font-size:15px}
+  .score-banner{margin-top:12px;padding:12px;border-radius:10px;text-align:center;font-weight:800;font-size:18px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="ball"></span>
+    <div><h1>bball</h1><small>masters team · strategy & rotations</small></div>
+  </div>
+  <nav id="nav">
+    <button data-view="getin" class="active">🏀 Get In</button>
+    <button data-view="roster">Roster</button>
+    <button data-view="lineup">Lineup</button>
+    <button data-view="shooting">🎯 Shooting</button>
+    <button data-view="houses">🏫 Houses</button>
+    <button data-view="rotation">Rotation</button>
+    <button data-view="strategy">Strategy</button>
+    <button data-view="data">Data</button>
+  </nav>
+</header>
+
+<main>
+  <div id="dataBanner"></div>
+
+  <!-- GET IN (player onboarding) -->
+  <section class="view active" id="view-getin">
+    <div class="hero">
+      <h2>Claim your spot 🏀</h2>
+      <p>We run craft, spacing &amp; smart shots — not track meets. Tell us your game and drop your hot zones. Takes 60 seconds.</p>
+      <button class="btn" onclick="startOnboard()" id="startBtn">Get started</button>
+    </div>
+
+    <div class="card" id="wizardCard" style="display:none">
+      <div class="steps-dots" id="stepDots"><i></i><i></i><i></i><i></i></div>
+
+      <!-- Step 1: name + position -->
+      <div class="step" id="step1">
+        <h3>Who's balling?</h3>
+        <p class="sub">Your name, number, and where you play best.</p>
+        <div class="row">
+          <div style="flex:0 0 90px"><label>Jersey #</label><input type="number" id="obNum" placeholder="#"></div>
+          <div style="flex:1"><label>Name / nickname</label><input id="obName" placeholder="e.g. Big Mike, Splash, Unc"></div>
+        </div>
+        <label style="margin-top:12px">Primary position</label>
+        <div class="pos-pick" id="posPick">
+          <button data-pos="PG">PG<small>point</small></button>
+          <button data-pos="SG">SG<small>2-guard</small></button>
+          <button data-pos="SF">SF<small>wing</small></button>
+          <button data-pos="PF">PF<small>forward</small></button>
+          <button data-pos="C">C<small>big</small></button>
+        </div>
+        <div class="wiz-nav"><button class="btn" onclick="wizNext(1)">Next →</button></div>
+      </div>
+
+      <!-- Step 2: sliders -->
+      <div class="step" id="step2">
+        <h3>Rate your game</h3>
+        <p class="sub">Be honest — this is how the crew builds lineups around you.</p>
+        <div id="sliderWrap"></div>
+        <label style="margin-top:14px">Usually available?</label>
+        <div class="avail-toggle" id="availPick">
+          <button class="yes" data-av="1">I'm in ✅</button>
+          <button class="no" data-av="0">Hit or miss</button>
+        </div>
+        <div class="wiz-nav"><button class="btn sec" onclick="wizGo(1)">← Back</button><button class="btn" onclick="wizNext(2)">Next →</button></div>
+      </div>
+
+      <!-- Step 3: shot chart -->
+      <div class="step" id="step3">
+        <h3>Drop your hot zones 🔥</h3>
+        <p class="sub">Tap the court where you love to score. Tap a spot again: like → <b>love</b> → remove.</p>
+        <div class="court-wrap" id="courtWrap"></div>
+        <div class="court-legend">
+          <span><span class="dot-like"></span> Like it</span>
+          <span><span class="dot-love"></span> Love it</span>
+          <span id="spotCount">0 spots</span>
+        </div>
+        <div id="zoneChips" style="margin-top:10px;text-align:center"></div>
+        <div class="wiz-nav"><button class="btn sec" onclick="wizGo(2)">← Back</button><button class="btn" onclick="wizNext(3)">See my card →</button></div>
+      </div>
+
+      <!-- Step 4: summary card -->
+      <div class="step" id="step4">
+        <div id="summaryCard"></div>
+        <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px;background:var(--panel2)">
+          <label style="margin-top:0">🎯 Log a quick free-throw session? <span class="muted">(optional)</span></label>
+          <div class="row">
+            <div><input type="number" id="obFtMakes" placeholder="makes" min="0"></div>
+            <div><input type="number" id="obFtAtt" placeholder="attempts" min="0"></div>
+          </div>
+          <p class="hint" style="margin:6px 0 0">Puts you straight on the Shooting leaderboard.</p>
+        </div>
+        <div class="wiz-nav"><button class="btn sec" onclick="wizGo(3)">← Tweak</button><button class="btn" onclick="commitProfile()">Add me to the squad ✅</button></div>
+        <p class="hint" style="text-align:center;margin-top:10px">This adds you to the in-memory roster. To share with the team, the owner wires up the Google Sheet (Data tab).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROSTER -->
+  <section class="view" id="view-roster">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Roster <span class="muted small" id="rosterCount"></span></h2>
+        <button class="btn sm" onclick="openPlayer()">+ Add player</button>
+      </div>
+      <p class="hint">Averages are 1–10. Toggle availability to include/exclude a player from lineups & rotations. Team is built for ~47-year-olds — watch the Fitness column.</p>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table id="rosterTable">
+        <thead><tr>
+          <th class="num">#</th><th>Avail</th><th>Name</th><th>Pos</th>
+          <th class="num">Shoot</th><th class="num">Def</th><th class="num">Play</th>
+          <th class="num">Reb</th><th class="num">IQ</th><th class="num">Fit</th><th class="num">Ovr</th><th></th>
+        </tr></thead>
+        <tbody id="rosterBody"></tbody>
+      </table>
+    </div>
+    <div class="card" id="nextGenCard">
+      <h2>🌱 Next Gen <span class="muted small">— team kids</span></h2>
+      <p class="hint">The crew's kids. Not part of the playing rotation, lineups, or minutes — just here so they're on the squad too. 🏀</p>
+      <div id="nextGenList"></div>
+    </div>
+  </section>
+
+  <!-- LINEUP -->
+  <section class="view" id="view-lineup">
+    <div class="card">
+      <h2>Lineup Builder</h2>
+      <p class="hint">Pick 5 available players. The app shows the unit's average ratings and flags strengths & gaps.</p>
+      <div id="pickList"></div>
+      <div class="small muted" id="pickCount" style="margin-top:6px"></div>
+    </div>
+    <div class="card" id="lineupResult"><h3>Unit analysis</h3><p class="muted small">Select 5 players to see analysis.</p></div>
+  </section>
+
+  <!-- SHOOTING -->
+  <section class="view" id="view-shooting">
+    <div class="card">
+      <h2>Shooting Room 🎯</h2>
+      <p class="hint">Log your solo reps. Chase the top of the board. Only players with logged attempts make the leaderboard.</p>
+      <div class="grid-form">
+        <div style="grid-column:span 2"><label>Player</label><select id="shPlayer"></select></div>
+        <div><label>Drill</label><select id="shDrill"><option>Free Throws</option><option>3PT</option><option>Mid-range</option><option>Layups</option><option>Floaters</option></select></div>
+        <div><label>Makes</label><input type="number" id="shMakes" min="0" placeholder="0"></div>
+        <div><label>Attempts</label><input type="number" id="shAtt" min="1" placeholder="0"></div>
+        <div><label>Date</label><input type="date" id="shDate"></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn" onclick="logPractice()">Log it 💦</button></div>
+      <div id="shMsg" class="hint"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0">🏆 Leaderboard</h2>
+        <select id="lbDrill" onchange="renderShooting()" style="max-width:150px"><option>Free Throws</option><option>3PT</option><option>Mid-range</option><option>Layups</option><option>Floaters</option></select>
+      </div>
+      <p class="hint">Ranked by overall % for the drill (ties broken by volume — more attempts wins).</p>
+      <div id="leaderboard"></div>
+    </div>
+  </section>
+
+  <!-- HOUSES -->
+  <section class="view" id="view-houses">
+    <div class="card">
+      <h2>🏫 Morrison vs Rest of the World</h2>
+      <p class="hint">Intra-squad game: <b style="color:#5b9bff">Morrison</b> (Blue) take on <b style="color:#4bcf88">ROTW</b> — Buckley (Green) + Hullett (Black) combined. Available adults only; kids sit this one out.</p>
+      <div class="vs-wrap">
+        <div class="squad mor" id="squadMor"></div>
+        <div class="vs-mid">VS</div>
+        <div class="squad rotw" id="squadRotw"></div>
+      </div>
+      <p class="hint" id="houseNote"></p>
+    </div>
+    <div class="card">
+      <h2>Scoreboard — quarter by quarter</h2>
+      <p class="hint">Enter each quarter's points. Totals and the leader update live. (Scores are kept in memory and included in JSON export.)</p>
+      <table class="qtable">
+        <thead><tr><th>Qtr</th><th class="mor-col">Morrison</th><th class="rotw-col">ROTW</th><th>Quarter</th></tr></thead>
+        <tbody id="qBody"></tbody>
+      </table>
+      <div id="qResult"></div>
+    </div>
+  </section>
+
+  <!-- ROTATION -->
+  <section class="view" id="view-rotation">
+    <div class="card">
+      <h2>Rotation / Minutes Optimizer</h2>
+      <p class="hint">Distributes minutes by stamina so lower-fitness players rest more, while keeping a balanced 5 on the floor each segment.</p>
+      <div class="grid-form">
+        <div><label>Game length (min)</label><input type="number" id="gameLen" value="40" min="8" max="60"></div>
+        <div><label>Segments</label><input type="number" id="segs" value="8" min="2" max="20"></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" style="width:100%" onclick="buildRotation()">Optimize</button></div>
+      </div>
+      <div style="margin-top:12px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)">
+        <label style="display:flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--text)">
+          <input type="checkbox" id="pressOn" style="width:auto" onchange="togglePressControls()"> Press mode — account for full-court press stamina cost
+        </label>
+        <div id="pressControls" class="grid-form" style="display:none;margin-top:10px">
+          <div><label>Press intensity</label><select id="pressIntensity"><option value="light">Light</option><option value="standard" selected>Standard</option><option value="heavy">Heavy</option></select></div>
+          <div><label>Press when</label><select id="pressScope"><option value="all">All game</option><option value="firstlast" selected>First & last segment</option><option value="first">First half</option><option value="last">Last half</option></select></div>
+        </div>
+      </div>
+      <p class="hint" id="segHint"></p>
+    </div>
+    <div class="card" id="rotationResult"></div>
+  </section>
+
+  <!-- STRATEGY -->
+  <section class="view" id="view-strategy">
+    <div class="card">
+      <h2>Strategy Board</h2>
+      <div class="row">
+        <div><label>Game / opponent label</label><input id="gameLabel" placeholder="e.g. vs Eastside Vets — Jul 12"></div>
+        <div style="flex:none;display:flex;align-items:flex-end;gap:8px">
+          <button class="btn sm" onclick="saveGame()">Save game plan</button>
+          <select id="gameSelect" onchange="loadGame(this.value)" style="min-width:160px"><option value="">— saved plans —</option></select>
+        </div>
+      </div>
+      <label>Game plan</label><textarea id="planGame" placeholder="Overall approach: tempo, defensive scheme, who we attack, minutes philosophy..."></textarea>
+      <label>Set plays</label><textarea id="planPlays" placeholder="1. Horns — PG/… &#10;2. Flare for shooter…"></textarea>
+      <label>Opponent / matchup notes</label><textarea id="planOpp" placeholder="Their #12 is a shooter — top-lock. They're slow in transition. Foul trouble targets..."></textarea>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0">Set Plays & Tactics</h2>
+        <div style="display:flex;gap:6px">
+          <button class="btn sm" onclick="addSetPlay('press')">+ Press tactic</button>
+          <button class="btn sm sec" onclick="addSetPlay('play')">+ Set play</button>
+        </div>
+      </div>
+      <p class="hint">Reusable named tactics. Flip <b>Active</b> to attach one to the current game plan — active tactics are saved with the game and can be reused across games.</p>
+      <div id="setPlaysList"></div>
+    </div>
+  </section>
+
+  <!-- DATA -->
+  <section class="view" id="view-data">
+    <div class="card">
+      <h2>Live Data (Google Sheet → CSV)</h2>
+      <p class="hint">Team members edit a shared Google Sheet. Publish it to the web as CSV, paste the URL below, and Load — everyone sees current data. Leave blank to work in local mode.</p>
+      <label>Published CSV URL</label>
+      <input id="csvUrl" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=0&single=true&output=csv">
+      <div class="row" style="margin-top:10px">
+        <button class="btn" onclick="loadFromSheet()">Load from Sheet</button>
+        <button class="btn sec" onclick="useLocal()">Use local sample data</button>
+      </div>
+      <div id="loadMsg" class="hint"></div>
+    </div>
+    <div class="card">
+      <h2>Backup / Share (JSON)</h2>
+      <p class="hint">No login and nothing is stored in your browser — state lives in memory only. Export to save your roster + strategy to a file; Import to restore it.</p>
+      <div class="row">
+        <button class="btn" onclick="exportJSON()">Export JSON</button>
+        <label class="btn sec" style="text-align:center">Import JSON<input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)"></label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>CSV column format</h2>
+      <p class="hint">Your sheet's header row must be exactly:</p>
+      <code class="small">number, name, position, pos2, shooting, defense, playmaking, rebounding, iq, fitness, available, notes, hot_zones, type, parent, house</code>
+      <p class="hint">number = jersey # · position / pos2 = primary + optional secondary (PG/SG/SF/PF/C) · ratings 1–10 · available = TRUE/FALSE · hot_zones = comma list like "left-corner-3, top-of-key-3!" (! = love) · type = adult/child · parent = a child's parent jersey # · house = Morrison/Buckley/Hullett (blank = unassigned). Team kids use type=child + parent and skip ratings — they're excluded from lineups, rotation and the shooting board.</p>
+    </div>
+  </section>
+</main>
+
+<!-- PLAYER MODAL -->
+<div class="modal-bg" id="playerModal">
+  <div class="modal">
+    <h2 id="modalTitle">Add player</h2>
+    <input type="hidden" id="pId">
+    <div class="grid-form">
+      <div><label>Jersey #</label><input type="number" id="pNum" placeholder="—"></div>
+      <div style="grid-column:span 2"><label>Name</label><input id="pName"></div>
+      <div><label>Position</label><select id="pPos"><option value="">TBD</option><option>PG</option><option>SG</option><option>SF</option><option>PF</option><option>C</option></select></div>
+      <div><label>Shooting (1–10)</label><input type="number" id="pShoot" min="1" max="10" value="5"></div>
+      <div><label>Defense (1–10)</label><input type="number" id="pDef" min="1" max="10" value="5"></div>
+      <div><label>Playmaking (1–10)</label><input type="number" id="pPlay" min="1" max="10" value="5"></div>
+      <div><label>Rebounding (1–10)</label><input type="number" id="pReb" min="1" max="10" value="5"></div>
+      <div><label>Basketball IQ (1–10)</label><input type="number" id="pIq" min="1" max="10" value="5"></div>
+      <div><label>Fitness/Stamina (1–10)</label><input type="number" id="pFit" min="1" max="10" value="5"></div>
+    </div>
+    <label>Notes</label><textarea id="pNotes" style="min-height:60px"></textarea>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="pAvail" checked style="width:auto"> Available</label>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" onclick="savePlayer()">Save</button>
+      <button class="btn sec" onclick="closeModal()">Cancel</button>
+      <button class="btn danger sm" id="delBtn" onclick="deletePlayer()" style="flex:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- State (in-memory only; NO localStorage) ---------- */
+let state = { players: [], games: [], setPlays: [], csvUrl: "", mode: "local",
+  houseScores: { mor:[0,0,0,0], rotw:[0,0,0,0] } };
+let selectedLineup = [];
+
+const POS = ["PG","SG","SF","PF","C"];
+const RATINGS = ["shooting","defense","playmaking","rebounding","iq"];
+const HOUSES = { Morrison:"#2a6fd6", Buckley:"#2c9c5c", Hullett:"#11151b" };
+function houseColor(h){ return HOUSES[h] || "transparent"; }
+function houseChip(h){ return h ? `<span class="house-chip h-${h}">${h}</span>` : `<span class="house-chip unassigned">no house</span>`; }
+
+function sampleData(){
+  // Real squad — unknown skills default to neutral 5 so each guy tunes his own in the Get In flow.
+  const roster=[
+    p(1,"Ah Liam","SF",5,5,5,7,5,9,true,"fit, fast, good with offensive rebounds"),
+    p(4,"Shihong","PF",5,5,7,5,8,5,true,"semi-coach, good understanding of game, left-handed"),
+    p(5,"Mah","",5,5,5,5,5,5,true,"profile TBD"),
+    p(6,"Jinyang","SG",7,5,5,5,5,5,true,"usually subs #10 (Wylie) out when #10 is tired; can shoot threes and make some in games"),
+    p(7,"Chau","SG",5,7,5,7,5,5,true,"strong; small, fast, left-handed"),
+    p(8,"Suku","SG",8,5,7,5,5,9,true,"good 3-point shooter, ball handler; fit, big minutes"),
+    p(9,"Leon","PG",5,5,8,5,7,9,true,"point guard, good court vision; fit, big minutes"),
+    p(10,"Wylie","",5,5,5,5,5,5,true,"owner"),
+    p(11,"Edwin","C",5,5,5,5,5,5,false,"not in SG, not playing; Center when back"),
+    p(12,"Jeff","PF",7,5,5,6,7,5,true,"reliable, understands game well, stable paint scorer"),
+    p(13,"Timo","PF",7,5,5,6,5,5,true,"power forward, stable scoring in the paint"),
+    p(14,"Jiaren","C",8,7,5,8,8,5,true,"center, ex-national player, understand game well, stable, we need him for most of the points in the paint"),
+    p(15,"Kit","SF",7,5,5,5,5,7,true,"Tall, offensive scoring, hungry, quite fit, like to push offense"),
+    p(19,"Nic","PF",5,8,5,7,5,5,true,"strong, defensive strong player"),
+  ];
+  const wylie=roster.find(x=>x.number===10);
+  if(wylie) wylie.practice=[{date:"2026-07-05",drill:"Free Throws",makes:69,attempts:100}];
+  // secondary positions (backup PG)
+  const sh=roster.find(x=>x.number===4); if(sh)sh.pos2="PG";
+  const su=roster.find(x=>x.number===8); if(su)su.pos2="PG";
+  // school houses (Kit #15 intentionally unassigned)
+  const houseMap={1:"Morrison",5:"Morrison",7:"Morrison",8:"Morrison",9:"Morrison",12:"Morrison",15:"Morrison",
+    4:"Buckley",6:"Buckley",19:"Buckley",10:"Hullett",13:"Hullett",14:"Hullett",11:"Hullett"};
+  roster.forEach(pl=>{ pl.house=houseMap[pl.number]||""; });
+  // Team kids (Next Gen) — juniors, NOT part of the playing rotation
+  roster.push(kid(8.1,"Ryan",8), kid(9.1,"Noelle",9), kid(9.2,"Renee",9));
+  roster.filter(k=>k.isChild).forEach(k=>{ const par=roster.find(pp=>!pp.isChild&&String(pp.number)===String(k.parentNumber)); k.house=par?par.house:""; });
+  return roster;
+}
+let _id=1;
+function p(number,name,pos,sh,df,pl,rb,iq,fit,av,notes){
+  return {id:_id++,number:number||"",name,position:pos,shooting:sh,defense:df,playmaking:pl,rebounding:rb,iq,fitness:fit,available:av,notes:notes||"",hotZones:[],practice:[]};
+}
+// Junior/child entry — no ratings, excluded from lineup/rotation/shooting math
+function kid(number,name,parentNumber){
+  return {id:_id++,number,name,isChild:true,parentNumber,position:"",available:true,notes:"",hotZones:[],practice:[]};
+}
+function overall(pl){ return +(RATINGS.reduce((s,r)=>s+(+pl[r]||0),0)/RATINGS.length).toFixed(1); }
+
+/* ---------- Nav ---------- */
+document.getElementById("nav").addEventListener("click",e=>{
+  if(e.target.tagName!=="BUTTON")return;
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.remove("active"));
+  e.target.classList.add("active");
+  const v=e.target.dataset.view;
+  document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));
+  document.getElementById("view-"+v).classList.add("active");
+  if(v==="lineup")renderPickList();
+  if(v==="shooting")renderShooting();
+  if(v==="houses")renderHouses();
+});
+
+/* ---------- Toast ---------- */
+let toastT;
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2200);}
+
+/* ---------- Roster ---------- */
+function renderRoster(){
+  const b=document.getElementById("rosterBody"); b.innerHTML="";
+  const adults=state.players.filter(pl=>!pl.isChild);
+  adults.forEach(pl=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td class="num muted">${pl.number!==""&&pl.number!=null?esc(String(pl.number)):"—"}</td>
+      <td><span class="avail-dot ${pl.available?'on':'off'}" title="${pl.available?'available':'out'}"></span></td>
+      <td><b>${esc(pl.name)}</b> ${houseChip(pl.house)}${pl.hotZones&&pl.hotZones.length?` <span class="small" title="hot zones marked">🔥${pl.hotZones.length}</span>`:""}</td>
+      <td>${pl.position?`<span class="pill pos">${pl.position}</span>`:'<span class="muted small">TBD</span>'}${pl.pos2?` <span class="pill pos2" title="secondary position">${esc(pl.pos2)}</span>`:""}</td>
+      <td class="num">${pl.shooting}</td><td class="num">${pl.defense}</td><td class="num">${pl.playmaking}</td>
+      <td class="num">${pl.rebounding}</td><td class="num">${pl.iq}</td>
+      <td class="num" style="color:${fitColor(pl.fitness)}">${pl.fitness}</td>
+      <td class="num"><b>${overall(pl)}</b></td>
+      <td><button class="btn sec sm" onclick="openPlayer(${pl.id})">Edit</button></td>`;
+    b.appendChild(tr);
+  });
+  document.getElementById("rosterCount").textContent=`· ${adults.length} players, ${adults.filter(x=>x.available).length} available`;
+  renderNextGen();
+}
+function renderNextGen(){
+  const el=document.getElementById("nextGenList"); if(!el)return;
+  const kids=state.players.filter(p=>p.isChild);
+  if(!kids.length){ el.innerHTML="<p class='muted small'>No team kids yet.</p>"; return; }
+  el.innerHTML=kids.map(k=>{
+    const parent=state.players.find(p=>!p.isChild && String(p.number)===String(k.parentNumber));
+    return `<div class="kid-row">
+      <span class="kid-badge">${esc(String(k.number))}</span>
+      <span style="flex:1"><b>${esc(k.name)}</b> <span class="muted small">child of #${esc(String(k.parentNumber))}${parent?" "+esc(parent.name):""}</span></span>
+      <span class="kid-tag">Next Gen</span>
+    </div>`;
+  }).join("");
+}
+function fitColor(f){ return f<=4?"var(--bad)":f<=6?"var(--warn)":"var(--good)"; }
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------- Player modal ---------- */
+function openPlayer(id){
+  const m=document.getElementById("playerModal"); m.classList.add("show");
+  const del=document.getElementById("delBtn");
+  if(id){
+    const pl=state.players.find(x=>x.id===id);
+    document.getElementById("modalTitle").textContent="Edit player";
+    pId.value=pl.id;pNum.value=pl.number??"";pName.value=pl.name;pPos.value=pl.position;pShoot.value=pl.shooting;pDef.value=pl.defense;
+    pPlay.value=pl.playmaking;pReb.value=pl.rebounding;pIq.value=pl.iq;pFit.value=pl.fitness;pNotes.value=pl.notes;pAvail.checked=pl.available;
+    del.style.display="";
+  } else {
+    document.getElementById("modalTitle").textContent="Add player";
+    pId.value="";pNum.value="";pName.value="";pPos.value="";["pShoot","pDef","pPlay","pReb","pIq","pFit"].forEach(k=>document.getElementById(k).value=5);
+    pNotes.value="";pAvail.checked=true;del.style.display="none";
+  }
+}
+function closeModal(){document.getElementById("playerModal").classList.remove("show");}
+function clamp(v){return Math.max(1,Math.min(10,Math.round(+v||1)));}
+function savePlayer(){
+  if(!pName.value.trim()){toast("Name required");return;}
+  const data={number:pNum.value.trim(),name:pName.value.trim(),position:pPos.value,shooting:clamp(pShoot.value),defense:clamp(pDef.value),
+    playmaking:clamp(pPlay.value),rebounding:clamp(pReb.value),iq:clamp(pIq.value),fitness:clamp(pFit.value),
+    available:pAvail.checked,notes:pNotes.value.trim()};
+  if(pId.value){ Object.assign(state.players.find(x=>x.id===+pId.value),data); }
+  else { data.id=_id++; data.hotZones=[]; data.practice=[]; state.players.push(data); }
+  closeModal();renderRoster();toast("Saved");
+}
+function deletePlayer(){
+  state.players=state.players.filter(x=>x.id!==+pId.value);
+  closeModal();renderRoster();toast("Deleted");
+}
+
+/* ---------- Lineup builder ---------- */
+function renderPickList(){
+  const avail=state.players.filter(x=>x.available && !x.isChild);
+  const el=document.getElementById("pickList");
+  el.innerHTML = avail.length? "" : "<p class='muted small'>No available players. Add players or toggle availability.</p>";
+  avail.forEach(pl=>{
+    const sel=selectedLineup.includes(pl.id);
+    const d=document.createElement("label");
+    d.className="pick"+(sel?" sel":"");
+    d.innerHTML=`<input type="checkbox" ${sel?"checked":""} onchange="togglePick(${pl.id})">
+      <span style="flex:1"><b>${esc(pl.name)}</b> <span class="pill pos">${pl.position}</span></span>
+      <span class="small muted">Ovr ${overall(pl)} · Fit ${pl.fitness}</span>`;
+    el.appendChild(d);
+  });
+  updatePickCount();
+}
+function togglePick(id){
+  if(selectedLineup.includes(id)) selectedLineup=selectedLineup.filter(x=>x!==id);
+  else { if(selectedLineup.length>=5){toast("Already have 5 — deselect one");renderPickList();return;} selectedLineup.push(id); }
+  renderPickList(); analyzeLineup();
+}
+function updatePickCount(){document.getElementById("pickCount").textContent=`${selectedLineup.length}/5 selected`;}
+function analyzeLineup(){
+  const box=document.getElementById("lineupResult");
+  if(selectedLineup.length!==5){ box.innerHTML="<h3>Unit analysis</h3><p class='muted small'>Select 5 players to see analysis.</p>"; return; }
+  const unit=selectedLineup.map(id=>state.players.find(x=>x.id===id));
+  const avg={}; RATINGS.concat("fitness").forEach(r=>avg[r]=+(unit.reduce((s,pl)=>s+pl[r],0)/5).toFixed(1));
+  const rows=RATINGS.map(r=>{
+    const label={shooting:"Shooting",defense:"Defense",playmaking:"Playmaking",rebounding:"Rebounding",iq:"Basketball IQ"}[r];
+    return `<div class="statline"><span>${label}</span><div class="bar"><span style="width:${avg[r]*10}%"></span></div><b>${avg[r]}</b></div>`;
+  }).join("");
+  // Strengths & gaps
+  const flags=[];
+  const posSet=unit.map(u=>u.position);
+  const hasBig=unit.some(u=>["PF","C"].includes(u.position));
+  const hasGuard=unit.some(u=>["PG","SG"].includes(u.position));
+  const rim=unit.some(u=>["C","PF"].includes(u.position)&&u.defense>=7&&u.rebounding>=7);
+  const playmaker=Math.max(...unit.map(u=>u.playmaking));
+  const shooters=unit.filter(u=>u.shooting>=7).length;
+  if(avg.shooting>=7)flags.push(["good","Strong shooting unit"]);
+  if(avg.defense>=7)flags.push(["good","Elite team defense"]);
+  if(avg.rebounding>=7)flags.push(["good","Dominant on the glass"]);
+  if(avg.iq>=7)flags.push(["good","High basketball IQ"]);
+  if(rim)flags.push(["good","Rim protection anchored"]);
+  if(shooters>=3)flags.push(["good",`Floor spacing (${shooters} shooters)`]);
+  if(avg.rebounding<5)flags.push(["bad","Low rebounding — vulnerable on the glass"]);
+  if(!rim)flags.push(["warn","No rim protector (no big with D+Reb ≥ 7)"]);
+  if(playmaker<6)flags.push(["warn","No real playmaker (top playmaking < 6)"]);
+  if(avg.shooting<5)flags.push(["warn","Poor spacing — defense will pack the paint"]);
+  if(avg.defense<5)flags.push(["bad","Leaky defense"]);
+  if(!hasBig)flags.push(["warn","Small-ball: no PF/C on the floor"]);
+  if(!hasGuard)flags.push(["warn","No natural guard/ball-handler"]);
+  if(avg.fitness<5)flags.push(["bad","Low-stamina unit — rotate this group out early"]);
+  else if(avg.fitness>=7)flags.push(["good","Fresh legs — can push tempo"]);
+  const flagHtml=flags.map(f=>`<span class="flag tag-${f[0]}">${f[1]}</span>`).join("")||"<span class='muted small'>Balanced, no major flags.</span>";
+  const teamOvr=+(RATINGS.reduce((s,r)=>s+avg[r],0)/RATINGS.length).toFixed(1);
+  box.innerHTML=`<h3>Unit analysis — Team rating ${teamOvr}</h3>
+    <div class="small muted" style="margin-bottom:8px">${unit.map(u=>esc(u.name)+" ("+u.position+")").join(" · ")}</div>
+    ${rows}
+    <div class="statline"><span>Avg fitness</span><div class="bar"><span style="width:${avg.fitness*10}%;background:${fitColor(avg.fitness)}"></span></div><b>${avg.fitness}</b></div>
+    <h3 style="margin-top:12px">Strengths & gaps</h3><div>${flagHtml}</div>`;
+}
+
+/* ---------- Rotation optimizer ----------
+   Heuristic (transparent):
+   1. Each available player gets a MINUTES TARGET proportional to stamina (fitness).
+      weight = fitness^EXP (so fresher players get more); targets sum to 5*gameLength.
+      EXP = 1.5 normally. PRESS MODE raises EXP (light 2.0 / standard 2.5 / heavy 3.0),
+      which skews minutes much harder toward the fittest players.
+   2. The game is split into equal SEGMENTS. Walking segment by segment, we pick the 5
+      players with the greatest "minutes still owed" — this naturally sits low-stamina
+      players more often. Ties break toward whoever rested last segment (fairness).
+      PRESS MODE also caps how many CONSECUTIVE segments a player can stay on (a "stint")
+      so pressers come out sooner; low-fitness players get a stint cap of just 1 segment.
+   3. PARTIAL PRESS: if only some segments are press segments, during those segments the
+      fittest players are pulled onto the floor (they do the trapping) while low-stamina
+      players are steered to the calmer non-press segments and rested during the press.
+   4. BALANCE PASS: if the chosen 5 has no PF/C (or no guard) but one is on the bench with
+      budget left, swap the lowest-need starter for them so the floor unit stays sane.
+*/
+function pressSegmentSet(nSeg,scope){
+  const set=new Set();
+  if(scope==="all"){ for(let i=0;i<nSeg;i++)set.add(i); }
+  else if(scope==="firstlast"){ set.add(0); set.add(nSeg-1); }
+  else if(scope==="first"){ for(let i=0;i<Math.ceil(nSeg/2);i++)set.add(i); }
+  else if(scope==="last"){ for(let i=Math.floor(nSeg/2);i<nSeg;i++)set.add(i); }
+  return set;
+}
+function buildRotation(){
+  const avail=state.players.filter(x=>x.available && !x.isChild);
+  const box=document.getElementById("rotationResult");
+  if(avail.length<5){box.innerHTML="<p class='tag-bad flag'>Need at least 5 available players.</p>";return;}
+  const gameLen=Math.max(4,+gameLen_val());const nSeg=Math.max(2,+document.getElementById("segs").value||8);
+  const segLen=gameLen/nSeg;
+  const totalSlots=5*gameLen;
+  const pressOn=document.getElementById("pressOn").checked;
+  const intensity=document.getElementById("pressIntensity").value;
+  const scope=document.getElementById("pressScope").value;
+  const pressSegs=pressOn?pressSegmentSet(nSeg,scope):new Set();
+  // press knobs by intensity
+  const EXP = !pressOn?1.5:(intensity==="light"?2.0:intensity==="heavy"?3.0:2.5);
+  // step 1: minutes targets by stamina (heavier skew under press)
+  const wsum=avail.reduce((s,pl)=>s+Math.pow(pl.fitness,EXP),0);
+  const players=avail.map(pl=>{
+    let target=totalSlots*Math.pow(pl.fitness,EXP)/wsum;
+    target=Math.min(target,gameLen);
+    return {...pl, target, played:0, lastRested:false, consec:0, segs:[]};
+  });
+  // per-player consecutive-segment (stint) cap
+  function stintCap(pl){
+    if(!pressOn) return pl.fitness>=7?4:pl.fitness>=5?3:2;
+    if(pl.fitness>=8) return intensity==="heavy"?2:3;  // fittest can string a longer press stint
+    if(pl.fitness>=6) return 2;
+    return 1; // low-fitness players: one segment then must sit when pressing
+  }
+  // step 2: segment-by-segment greedy
+  for(let s=0;s<nSeg;s++){
+    const isPress=pressSegs.has(s);
+    const maxFit=Math.max(...players.map(pl=>pl.fitness));
+    const ranked=[...players].sort((a,b)=>{
+      const sa=segScore(a), sb=segScore(b);
+      if(Math.abs(sb-sa)>0.001) return sb-sa;
+      if(a.lastRested!==b.lastRested) return a.lastRested? -1:1;
+      return overall(b)-overall(a);
+    });
+    function segScore(pl){
+      let sc=(pl.target-pl.played);                 // minutes still owed
+      if(pressOn){
+        if(isPress) sc += 1.5*pl.fitness;           // press segment: pull the fittest in to trap
+        else        sc += 0.8*(maxFit-pl.fitness);  // calm segment: give the tired guys these mins
+      }
+      return sc;
+    }
+    // stint cap: players at/over their consecutive limit must sit if we can still field 5
+    const forcedRest=players.filter(pl=>pl.consec>=stintCap(pl));
+    const eligible=ranked.filter(pl=>pl.consec<stintCap(pl));
+    let floor = eligible.length>=5 ? eligible.slice(0,5)
+              : eligible.concat(forcedRest.sort((a,b)=>a.consec-b.consec)).slice(0,5);
+    let bench=players.filter(pl=>!floor.includes(pl));
+    // step 4: balance pass — ensure a big and a guard if roster has them
+    const isBig=p=>["PF","C"].includes(p.position), isGuard=p=>["PG","SG"].includes(p.position);
+    function ensure(test){
+      if(floor.some(test)) return;
+      const cand=bench.filter(test).sort((a,b)=>(b.target-b.played)-(a.target-a.played))[0];
+      if(!cand) return;
+      const drop=[...floor].filter(pl=>!test(pl)).sort((a,b)=>(a.target-a.played)-(b.target-b.played))[0]||floor[4];
+      floor=floor.filter(pl=>pl!==drop).concat(cand);
+      bench=players.filter(pl=>!floor.includes(pl));
+    }
+    ensure(isBig); ensure(isGuard);
+    const floorSet=new Set(floor);
+    players.forEach(pl=>{
+      const on=floorSet.has(pl);
+      pl.segs.push(on);
+      if(on){pl.played+=segLen; pl.consec++;} else {pl.consec=0;}
+      pl.lastRested=!on;
+    });
+  }
+  renderRotation(players,nSeg,segLen,gameLen,{pressOn,intensity,scope,pressSegs,EXP});
+}
+function togglePressControls(){ document.getElementById("pressControls").style.display=document.getElementById("pressOn").checked?"":"none"; }
+function gameLen_val(){return document.getElementById("gameLen").value||40;}
+function renderRotation(players,nSeg,segLen,gameLen,press){
+  press=press||{pressOn:false};
+  players.sort((a,b)=>b.played-a.played);
+  const pHead=Array.from({length:nSeg},(_,i)=>{
+    const p=press.pressOn&&press.pressSegs.has(i);
+    return `<th class="num" title="min ${Math.round(i*segLen)}–${Math.round((i+1)*segLen)}${p?' · PRESS':''}" style="${p?'color:var(--accent)':''}">S${i+1}${p?'🔥':''}</th>`;
+  }).join("");
+  const header=`<th>Player</th><th>Pos</th>`+pHead+`<th class="num">Min</th><th class="num">%</th>`;
+  const rows=players.map(pl=>{
+    const cells=pl.segs.map((on,i)=>{
+      const p=press.pressOn&&press.pressSegs.has(i);
+      return on?`<td class="cell-on"${p?' style="background:var(--bad);color:#fff"':''}>●</td>`:`<td class="cell-off">·</td>`;
+    }).join("");
+    const pct=Math.round(pl.played/gameLen*100);
+    return `<tr><td><b>${esc(pl.name)}</b></td><td><span class="pill pos">${pl.position}</span></td>${cells}<td class="num"><b>${Math.round(pl.played)}</b></td><td class="num" style="color:${pct>90?'var(--warn)':'var(--muted)'}">${pct}%</td></tr>`;
+  }).join("");
+  const units=Array.from({length:nSeg},(_,s)=>{
+    const p=press.pressOn&&press.pressSegs.has(s);
+    const on=players.filter(pl=>pl.segs[s]).map(pl=>pl.name);
+    return `<div class="statline small"><span><b>S${s+1}</b> (min ${Math.round(s*segLen)}–${Math.round((s+1)*segLen)})${p?' <span class="flag tag-bad" style="padding:1px 6px">PRESS</span>':''}</span><span class="muted" style="text-align:right;flex:1;margin-left:10px">${on.map(esc).join(", ")}</span></div>`;
+  }).join("");
+  const restNote=players.filter(p=>p.fitness<=4).map(p=>`${esc(p.name)} (${Math.round(p.played)}m)`).join(", ");
+  const scopeTxt={all:"all game",firstlast:"first & last segment",first:"first half",last:"last half"}[press.scope]||"";
+  document.getElementById("segHint").textContent=`${nSeg} segments × ${segLen.toFixed(1)} min. Sub at each segment break.`;
+  const pressBox = press.pressOn ? `
+    <div class="banner" style="background:rgba(255,90,90,.1);border:1px solid rgba(255,90,90,.3);color:var(--bad)">
+      <b>🔥 Press mode: ${press.intensity} · ${scopeTxt}.</b> How it changed the math:
+      minutes are skewed harder toward fitness (weight = fitness<sup>${press.EXP}</sup>, vs 1.5 normally);
+      stint caps are shortened so pressers sub out sooner (low-fitness players sit after a single press-heavy segment);
+      and during press segments the fittest players are pulled onto the floor while low-stamina guys are rested for the calmer stretches.
+    </div>` : "";
+  document.getElementById("rotationResult").innerHTML=`
+    <h3>Suggested rotation — ${gameLen} min game${press.pressOn?" · press ON":""}</h3>
+    ${pressBox}
+    <div class="rot-grid"><table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="hint">● = on the floor${press.pressOn?" · red ● = pressing this segment":""}. Minutes are weighted by fitness so lower-stamina players rest more. Each segment keeps a big and a guard on the floor when available.</p>
+    ${restNote?`<p class="hint">Low-stamina players kept in check: ${restNote}.</p>`:""}
+    <h3 style="margin-top:12px">Unit by segment</h3>${units}`;
+}
+
+/* ---------- Strategy board ---------- */
+function saveGame(){
+  const label=gameLabel.value.trim()||("Game "+(state.games.length+1));
+  const activePlays=state.setPlays.filter(sp=>sp.active).map(sp=>sp.id);
+  const g={label,plan:planGame.value,plays:planPlays.value,opp:planOpp.value,activePlays};
+  const ex=state.games.findIndex(x=>x.label===label);
+  if(ex>=0)state.games[ex]=g; else state.games.push(g);
+  refreshGameSelect(label);toast("Game plan saved");
+}
+function refreshGameSelect(sel){
+  const s=document.getElementById("gameSelect");
+  s.innerHTML='<option value="">— saved plans —</option>'+state.games.map((g,i)=>`<option value="${i}" ${sel===g.label?"selected":""}>${esc(g.label)}</option>`).join("");
+}
+function loadGame(i){
+  if(i==="")return; const g=state.games[+i]; if(!g)return;
+  gameLabel.value=g.label;planGame.value=g.plan;planPlays.value=g.plays;planOpp.value=g.opp;
+  const act=new Set(g.activePlays||[]);
+  state.setPlays.forEach(sp=>sp.active=act.has(sp.id));
+  renderSetPlays();
+}
+
+/* ---------- Set plays & tactics library ---------- */
+let _spId=1;
+function seedSetPlays(){
+  return [{
+    id:_spId++, kind:"press", active:false, name:"Full-Court Press",
+    pressType:"1-2-1-1 diamond", trigger:"After made basket",
+    trappers:"Speedy + Marcus (first trap in the corner)",
+    safety:"Tank (last line — protect the rim, no layups)",
+    notes:"Deny the inbounds, funnel to the sideline, trap in the corner. If broken, sprint back — no gambling in the backcourt when we're tired. Pair with Press mode in the Rotation tab."
+  }];
+}
+function addSetPlay(kind){
+  state.setPlays.push(kind==="press"
+    ? {id:_spId++,kind:"press",active:false,name:"Full-Court Press",pressType:"2-2-1",trigger:"Last 4 minutes",trappers:"",safety:"",notes:""}
+    : {id:_spId++,kind:"play",active:false,name:"New set play",pressType:"",trigger:"",trappers:"",safety:"",notes:""});
+  renderSetPlays();
+}
+function updateSetPlay(id,field,val){ const sp=state.setPlays.find(x=>x.id===id); if(sp)sp[field]=val; }
+function toggleSetPlayActive(id){ const sp=state.setPlays.find(x=>x.id===id); if(sp)sp.active=!sp.active; renderSetPlays(); }
+function deleteSetPlay(id){ state.setPlays=state.setPlays.filter(x=>x.id!==id); renderSetPlays(); }
+function renderSetPlays(){
+  const el=document.getElementById("setPlaysList"); if(!el)return;
+  if(!state.setPlays.length){ el.innerHTML="<p class='muted small'>No tactics yet. Add a press tactic or set play.</p>"; return; }
+  el.innerHTML=state.setPlays.map(sp=>{
+    const F=(field,ph)=>`<input value="${esc(sp[field]||"")}" placeholder="${ph}" oninput="updateSetPlay(${sp.id},'${field}',this.value)">`;
+    const pressFields = sp.kind==="press" ? `
+      <div class="grid-form" style="margin-top:8px">
+        <div><label>Press type</label>${F("pressType","1-2-1-1 diamond / 2-2-1 / man")}</div>
+        <div><label>Trigger</label>${F("trigger","after made basket / all game / last X min")}</div>
+        <div><label>Primary trappers</label>${F("trappers","who springs the trap")}</div>
+        <div><label>Safety / back defender</label>${F("safety","last line of defense")}</div>
+      </div>` : "";
+    return `<div class="player-card" style="${sp.active?'border-color:var(--accent)':''}">
+      <div class="top">
+        <div style="flex:1;display:flex;align-items:center;gap:8px">
+          <span class="pill ${sp.kind==='press'?'tag-bad':'pos'}">${sp.kind==='press'?'PRESS':'PLAY'}</span>
+          <input value="${esc(sp.name)}" oninput="updateSetPlay(${sp.id},'name',this.value)" style="font-weight:600;max-width:280px">
+        </div>
+        <label class="small" style="display:flex;align-items:center;gap:5px;margin:0;color:${sp.active?'var(--accent)':'var(--muted)'}">
+          <input type="checkbox" ${sp.active?'checked':''} onchange="toggleSetPlayActive(${sp.id})" style="width:auto"> Active
+        </label>
+        <button class="btn danger sm" onclick="deleteSetPlay(${sp.id})" style="flex:none">✕</button>
+      </div>
+      ${pressFields}
+      <label>Notes</label><textarea style="min-height:60px" oninput="updateSetPlay(${sp.id},'notes',this.value)">${esc(sp.notes||"")}</textarea>
+    </div>`;
+  }).join("");
+}
+
+/* ---------- Practice log / Shooting ---------- */
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function drillStats(pl,drill){
+  const rows=(pl.practice||[]).filter(e=>e.drill===drill && +e.attempts>0);
+  const makes=rows.reduce((s,e)=>s+(+e.makes||0),0);
+  const att=rows.reduce((s,e)=>s+(+e.attempts||0),0);
+  const best=rows.reduce((b,e)=>Math.max(b,(+e.makes||0)/(+e.attempts||1)),0);
+  return {makes,att,pct:att?makes/att*100:0,best:best*100,sessions:rows.length};
+}
+function ftLeaderboard(players,drill){
+  return players.filter(pl=>!pl.isChild).map(pl=>Object.assign({pl},drillStats(pl,drill)))
+    .filter(x=>x.att>0)
+    .sort((a,b)=> (b.pct-a.pct) || (b.att-a.att) || a.pl.name.localeCompare(b.pl.name));
+}
+function populateShPlayers(){
+  const sel=document.getElementById("shPlayer"); if(!sel)return; const cur=sel.value;
+  sel.innerHTML=state.players.filter(p=>!p.isChild).map(p=>`<option value="${p.id}">${p.number!==""&&p.number!=null?"#"+esc(String(p.number))+" ":""}${esc(p.name)}</option>`).join("");
+  if(cur && state.players.some(p=>String(p.id)===cur)) sel.value=cur;
+}
+function logPractice(){
+  const pl=state.players.find(p=>p.id===+document.getElementById("shPlayer").value);
+  const msg=document.getElementById("shMsg");
+  if(!pl){msg.innerHTML="<span class='tag-bad flag'>Pick a player.</span>";return;}
+  const drill=document.getElementById("shDrill").value;
+  const makes=Math.max(0,Math.floor(+document.getElementById("shMakes").value||0));
+  const attempts=Math.floor(+document.getElementById("shAtt").value||0);
+  const date=document.getElementById("shDate").value||todayStr();
+  if(attempts<=0){msg.innerHTML="<span class='tag-bad flag'>Attempts must be at least 1.</span>";return;}
+  if(makes>attempts){msg.innerHTML="<span class='tag-bad flag'>Makes can't exceed attempts.</span>";return;}
+  if(!pl.practice)pl.practice=[];
+  pl.practice.push({date,drill,makes,attempts});
+  document.getElementById("shMakes").value=""; document.getElementById("shAtt").value="";
+  document.getElementById("lbDrill").value=drill;
+  msg.innerHTML=`<span class='tag-good flag'>Logged ${makes}/${attempts} (${Math.round(makes/attempts*100)}%) ${esc(drill)} for ${esc(pl.name)}.</span>`;
+  renderShooting(); renderRoster(); toast("Rep logged 💦");
+}
+function renderShooting(){
+  populateShPlayers();
+  const dEl=document.getElementById("shDate"); if(dEl && !dEl.value)dEl.value=todayStr();
+  const drill=document.getElementById("lbDrill").value;
+  const board=ftLeaderboard(state.players,drill);
+  const el=document.getElementById("leaderboard");
+  if(!board.length){ el.innerHTML=`<p class='muted small'>No ${esc(drill)} logged yet — be the first on the board!</p>`; return; }
+  const medal=["🥇","🥈","🥉"];
+  el.innerHTML=board.map((x,i)=>`
+    <div class="lb-row${i===0?' lead':''}">
+      <div class="lb-rank">${medal[i]||("#"+(i+1))}</div>
+      <div class="lb-name"><b>${esc(x.pl.name)}</b>${x.pl.number!==""&&x.pl.number!=null?` <span class="muted small">#${esc(String(x.pl.number))}</span>`:""}
+        <div class="muted small">${x.makes}/${x.att} · ${x.sessions} session${x.sessions>1?"s":""}${x.sessions>1?` · best ${Math.round(x.best)}%`:""}</div></div>
+      <div class="lb-pct">${Math.round(x.pct)}<span style="font-size:12px">%</span></div>
+    </div>`).join("");
+}
+
+/* ---------- Houses / Morrison vs ROTW ---------- */
+function squadPlayers(houses){ return state.players.filter(p=>!p.isChild && houses.includes(p.house)); }
+function squadHTML(players){
+  const av=players.filter(p=>p.available).length;
+  const ordered=players.slice().sort((a,b)=>(a.available===b.available)?0:(a.available?-1:1));
+  const rows=ordered.map(p=>`<div class="sq-row ${p.available?'':'out'}"><span class="hdot" style="background:${houseColor(p.house)}"></span><span style="flex:1">#${esc(String(p.number))} ${esc(p.name)}</span><span class="muted small">${esc(p.house)}</span></div>`).join("")||"<p class='muted small'>No players.</p>";
+  return {av, total:players.length, rows};
+}
+function renderHouses(){
+  const morEl=document.getElementById("squadMor"); if(!morEl)return;
+  const m=squadHTML(squadPlayers(["Morrison"]));
+  const r=squadHTML(squadPlayers(["Buckley","Hullett"]));
+  morEl.innerHTML=`<h3 style="color:#5b9bff">🔵 Morrison</h3><div class="cnt">${m.total} players · ${m.av} available</div>${m.rows}`;
+  document.getElementById("squadRotw").innerHTML=`<h3 style="color:#4bcf88">🟢⚫ ROTW</h3><div class="cnt">${r.total} players · ${r.av} available · Buckley + Hullett</div>${r.rows}`;
+  const unassigned=state.players.filter(p=>!p.isChild && !p.house);
+  document.getElementById("houseNote").innerHTML = unassigned.length
+    ? `⚠️ Unassigned (on neither side yet): ${unassigned.map(p=>"#"+esc(String(p.number))+" "+esc(p.name)).join(", ")}.`
+    : "";
+  buildScoreboard();
+}
+function buildScoreboard(){
+  const b=document.getElementById("qBody"); if(!b)return;
+  const s=state.houseScores;
+  b.innerHTML=[0,1,2,3].map(q=>`<tr>
+    <td><b>Q${q+1}</b></td>
+    <td><input type="number" min="0" id="qm${q}" value="${s.mor[q]||0}" oninput="updateQScore(${q},'mor',this.value)"></td>
+    <td><input type="number" min="0" id="qr${q}" value="${s.rotw[q]||0}" oninput="updateQScore(${q},'rotw',this.value)"></td>
+    <td id="qLead${q}" class="small"></td></tr>`).join("")
+    +`<tr class="tot"><td>Total</td><td class="mor-col" id="qTotMor"></td><td class="rotw-col" id="qTotRotw"></td><td id="qLeadTot"></td></tr>`;
+  updateScoreSummary();
+}
+function updateQScore(q,side,val){ state.houseScores[side][q]=Math.max(0,Math.floor(+val||0)); updateScoreSummary(); }
+function updateScoreSummary(){
+  const s=state.houseScores; let tm=0,tr=0;
+  for(let q=0;q<4;q++){
+    const m=+s.mor[q]||0, r=+s.rotw[q]||0; tm+=m; tr+=r;
+    const cell=document.getElementById("qLead"+q);
+    if(cell) cell.innerHTML=(m||r)?(m>r?'<span style="color:#5b9bff">Morrison</span>':r>m?'<span style="color:#4bcf88">ROTW</span>':'<span class="muted">tie</span>'):'<span class="muted">—</span>';
+  }
+  const tmEl=document.getElementById("qTotMor"); if(tmEl)tmEl.textContent=tm;
+  const trEl=document.getElementById("qTotRotw"); if(trEl)trEl.textContent=tr;
+  const lt=document.getElementById("qLeadTot"); if(lt)lt.innerHTML=tm>tr?'<span style="color:#5b9bff">Morrison</span>':tr>tm?'<span style="color:#4bcf88">ROTW</span>':'<span class="muted">tie</span>';
+  const res=document.getElementById("qResult"); if(!res)return;
+  if(!tm&&!tr){ res.innerHTML=""; return; }
+  const tie=tm===tr, lead=tm>tr;
+  const bg=tie?'rgba(147,161,177,.15)':(lead?'rgba(42,111,214,.18)':'rgba(44,156,92,.18)');
+  const col=tie?'var(--muted)':(lead?'#5b9bff':'#4bcf88');
+  const txt=tie?`All square ${tm}–${tr}`:(lead?`MORRISON leads ${tm}–${tr}`:`ROTW leads ${tr}–${tm}`);
+  res.innerHTML=`<div class="score-banner" style="background:${bg};color:${col}">${txt}</div>`;
+}
+
+/* ---------- Data layer: CSV / Sheet ---------- */
+function setBanner(){
+  const el=document.getElementById("dataBanner");
+  if(state.mode==="live") el.innerHTML=`<div class="banner live">● Live — loaded from Google Sheet. Reload the Data tab to refresh.</div>`;
+  else el.innerHTML=`<div class="banner local">● Local mode — sample/in-memory data. Wire up a Google Sheet in the Data tab to share with the team.</div>`;
+}
+function parseCSV(text){
+  // simple CSV parser handling quotes
+  const rows=[];let i=0,field="",row=[],inQ=false;
+  while(i<text.length){
+    const c=text[i];
+    if(inQ){ if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else inQ=false; } else field+=c; }
+    else{ if(c==='"')inQ=true; else if(c===',' ){row.push(field);field="";} else if(c==='\n'){row.push(field);rows.push(row);row=[];field="";} else if(c==='\r'){} else field+=c; }
+    i++;
+  }
+  if(field.length||row.length){row.push(field);rows.push(row);}
+  return rows.filter(r=>r.length && r.some(c=>c.trim()!==""));
+}
+function boolOf(v){ v=String(v).trim().toLowerCase(); return ["true","yes","y","1","available","x"].includes(v); }
+function playersFromCSV(text){
+  const rows=parseCSV(text); if(rows.length<2)throw new Error("No data rows found");
+  const head=rows[0].map(h=>h.trim().toLowerCase());
+  const idx=n=>head.indexOf(n);
+  const need=["name","position"];
+  if(need.some(n=>idx(n)<0))throw new Error("CSV must have at least name and position columns");
+  const out=[];
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r]; const get=(n,d)=>{const j=idx(n);return j>=0?row[j]:d;};
+    const name=(get("name","")||"").trim(); if(!name)continue;
+    const number=(get("number","")||"").trim();
+    const parent=(get("parent","")||"").trim();
+    const isChild=((get("type","")||"").trim().toLowerCase()==="child") || parent!=="";
+    if(isChild){
+      out.push({id:_id++,number,name,isChild:true,parentNumber:parent,position:"",house:(get("house","")||"").trim(),
+        available:idx("available")>=0?boolOf(get("available","true")):true,
+        notes:(get("notes","")||"").trim(),hotZones:[],practice:[]});
+      continue;
+    }
+    out.push({id:_id++,number,name,position:(get("position","")||"").trim().toUpperCase(),pos2:(get("pos2","")||"").trim().toUpperCase(),house:(get("house","")||"").trim(),
+      shooting:clamp(get("shooting",5)),defense:clamp(get("defense",5)),playmaking:clamp(get("playmaking",5)),
+      rebounding:clamp(get("rebounding",5)),iq:clamp(get("iq",5)),fitness:clamp(get("fitness",5)),
+      available:idx("available")>=0?boolOf(get("available","true")):true, notes:(get("notes","")||"").trim(),
+      hotZones:zonesFromText(get("hot_zones","")), practice:[]});
+  }
+  if(!out.length)throw new Error("No valid players parsed");
+  return out;
+}
+async function loadFromSheet(){
+  const url=document.getElementById("csvUrl").value.trim();
+  const msg=document.getElementById("loadMsg");
+  if(!url){msg.textContent="Enter a published CSV URL first.";return;}
+  msg.textContent="Loading…";
+  try{
+    const res=await fetch(url); if(!res.ok)throw new Error("HTTP "+res.status);
+    const text=await res.text();
+    const players=playersFromCSV(text);
+    state.players=players; state.csvUrl=url; state.mode="live";
+    _resyncAll(); msg.innerHTML=`<span class="tag-good flag">Loaded ${players.length} players from Sheet.</span>`;
+    toast("Live data loaded");
+  }catch(e){ msg.innerHTML=`<span class="tag-bad flag">Failed: ${esc(e.message)}. Check the sheet is Published to web as CSV and the URL ends in output=csv.</span>`; }
+}
+function useLocal(){ state.players=sampleData(); state.mode="local"; _resyncAll(); toast("Loaded sample data"); document.getElementById("loadMsg").textContent="Using local sample data."; }
+
+/* ---------- Export / Import JSON ---------- */
+function exportJSON(){
+  const data=JSON.stringify({players:state.players,games:state.games,setPlays:state.setPlays,houseScores:state.houseScores,csvUrl:state.csvUrl,exported:new Date().toISOString()},null,2);
+  const blob=new Blob([data],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="bball-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();
+  toast("Exported JSON");
+}
+function importJSON(ev){
+  const f=ev.target.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      if(Array.isArray(d.players)){ state.players=d.players.map(p=>({...p,id:p.id||_id++})); _id=Math.max(_id,...state.players.map(p=>+p.id||0))+1; }
+      if(Array.isArray(d.games))state.games=d.games;
+      if(Array.isArray(d.setPlays)){ state.setPlays=d.setPlays.map(sp=>({...sp,id:sp.id||_spId++})); _spId=Math.max(_spId,...state.setPlays.map(sp=>+sp.id||0))+1; }
+      if(d.houseScores&&d.houseScores.mor&&d.houseScores.rotw)state.houseScores=d.houseScores;
+      if(d.csvUrl){state.csvUrl=d.csvUrl;document.getElementById("csvUrl").value=d.csvUrl;}
+      _resyncAll(); refreshGameSelect(); toast("Imported "+state.players.length+" players");
+    }catch(e){toast("Invalid JSON file");}
+  };
+  rd.readAsText(f); ev.target.value="";
+}
+
+/* ================= ONBOARDING / GET IN ================= */
+const RATING_META=[
+  ["shooting","Shooting","🎯"],["defense","Defense","🛡️"],["playmaking","Playmaking","🎩"],
+  ["rebounding","Rebounding","🔨"],["iq","Basketball IQ","🧠"],["fitness","Fitness / Stamina","⚡"]
+];
+let draft=null, curStep=1;
+function newDraft(){ return {number:"",name:"",position:"",available:true,
+  ratings:{shooting:6,defense:6,playmaking:6,rebounding:6,iq:6,fitness:6}, hotZones:[]}; }
+
+function startOnboard(){
+  draft=newDraft(); curStep=1;
+  document.getElementById("wizardCard").style.display="";
+  document.getElementById("startBtn").textContent="Restart";
+  document.getElementById("obName").value=""; document.getElementById("obNum").value="";
+  document.getElementById("obFtMakes").value=""; document.getElementById("obFtAtt").value="";
+  [...document.getElementById("posPick").children].forEach(x=>x.classList.remove("sel"));
+  [...document.getElementById("availPick").children].forEach((x,i)=>x.classList.toggle("sel",i===0));
+  renderSliders(); drawCourt(); wizGo(1);
+  document.getElementById("wizardCard").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function wizGo(n){
+  curStep=n;
+  for(let i=1;i<=4;i++)document.getElementById("step"+i).classList.toggle("on",i===n);
+  const dots=document.getElementById("stepDots").children;
+  for(let i=0;i<4;i++)dots[i].classList.toggle("on",i===n-1);
+  if(n===3)drawCourt();
+  if(n===4)renderSummary();
+}
+function wizNext(from){
+  if(from===1){ if(!draft.name.trim()){toast("Add your name");return;} if(!draft.position){toast("Pick a position");return;} }
+  wizGo(from+1);
+}
+/* name / position / availability inputs */
+document.getElementById("obName").addEventListener("input",e=>{ if(draft)draft.name=e.target.value; });
+document.getElementById("obNum").addEventListener("input",e=>{ if(draft)draft.number=e.target.value.trim(); });
+document.getElementById("posPick").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b||!draft)return;
+  draft.position=b.dataset.pos;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle("sel",x===b));
+});
+document.getElementById("availPick").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b||!draft)return;
+  draft.available=b.dataset.av==="1";
+  [...e.currentTarget.children].forEach(x=>x.classList.remove("sel"));
+  b.classList.add("sel");
+});
+/* sliders */
+function renderSliders(){
+  const wrap=document.getElementById("sliderWrap");
+  wrap.innerHTML=RATING_META.map(([k,label,emoji])=>{
+    const v=draft.ratings[k];
+    return `<div class="slider">
+      <div class="lab"><b>${emoji} ${label}</b><span class="val" id="val-${k}">${v}</span></div>
+      <input type="range" min="1" max="10" value="${v}" id="sl-${k}" style="--pct:${(v-1)/9*100}%" oninput="onSlide('${k}',this.value)">
+    </div>`;
+  }).join("");
+}
+function onSlide(k,v){
+  draft.ratings[k]=+v;
+  document.getElementById("val-"+k).textContent=v;
+  document.getElementById("sl-"+k).style.setProperty("--pct",((v-1)/9*100)+"%");
+}
+/* ---- Court geometry & zones ---- */
+function classifyZone(xN,yN){
+  const x=xN*500,y=yN*470, dx=x-250, dy=y-90, d=Math.hypot(dx,dy);
+  const corner3 = y<=205 && (x<=55 || x>=445);
+  const three = d>=233 || corner3;
+  const side = x<200?"left":x>300?"right":"middle";
+  if(three){
+    if(corner3) return side+"-corner-3";
+    if(side==="middle") return "top-of-key-3";
+    return side+"-wing-3";
+  }
+  if(d<45) return "at-the-rim";
+  const inPaint = x>=175&&x<=325&&y<=230;
+  if(inPaint){ return y>=200?"free-throw":"paint"; }
+  if(side==="middle") return y>=190?"top-key-mid":"high-post";
+  if(y<=150) return side+"-baseline-mid";
+  if(y>=195) return side+"-elbow";
+  return side+"-mid";
+}
+function pretty(z){ return z.replace(/-/g," "); }
+function arcPathD(){
+  const C={x:250,y:90},R=235,steps=44;
+  const aA=Math.atan2(205-C.y,45-C.x), aB=Math.atan2(205-C.y,455-C.x);
+  let d="";
+  for(let i=0;i<=steps;i++){ const t=aA+(aB-aA)*i/steps; const x=C.x+R*Math.cos(t), y=C.y+R*Math.sin(t); d+=(i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1)+" "; }
+  return d;
+}
+function courtSVGString(markers,id){
+  const line="rgba(255,255,255,.55)", accent="var(--accent)";
+  const mk=(markers||[]).map(z=>{
+    const cx=(z.x*500).toFixed(1), cy=(z.y*470).toFixed(1);
+    if(z.w===2) return `<g class="shot-marker"><circle cx="${cx}" cy="${cy}" r="15" fill="var(--accent)" stroke="#fff" stroke-width="2.5"/><text x="${cx}" y="${+cy+5}" text-anchor="middle" font-size="15">❤</text></g>`;
+    return `<circle class="shot-marker" cx="${cx}" cy="${cy}" r="9.5" fill="var(--accent2)" stroke="#fff" stroke-width="2"/>`;
+  }).join("");
+  return `<svg id="${id}" viewBox="0 0 500 470" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#173a5c"/><stop offset="1" stop-color="#0c1f33"/></linearGradient></defs>
+    <rect x="2" y="2" width="496" height="466" rx="10" fill="url(#cg)" stroke="${line}" stroke-width="2.5"/>
+    <!-- paint -->
+    <rect x="175" y="40" width="150" height="190" fill="rgba(255,255,255,.05)" stroke="${line}" stroke-width="2"/>
+    <circle cx="250" cy="230" r="58" fill="none" stroke="${line}" stroke-width="2"/>
+    <!-- backboard + rim -->
+    <line x1="215" y1="78" x2="285" y2="78" stroke="#fff" stroke-width="3"/>
+    <circle cx="250" cy="90" r="9" fill="none" stroke="var(--accent)" stroke-width="3"/>
+    <path d="M210 130 A 45 45 0 0 0 290 130" fill="none" stroke="${line}" stroke-width="2"/>
+    <!-- 3pt -->
+    <line x1="45" y1="40" x2="45" y2="205" stroke="${accent}" stroke-width="3"/>
+    <line x1="455" y1="40" x2="455" y2="205" stroke="${accent}" stroke-width="3"/>
+    <path d="${arcPathD()}" fill="none" stroke="${accent}" stroke-width="3"/>
+    <!-- half-court arc -->
+    <path d="M190 468 A 60 60 0 0 1 310 468" fill="none" stroke="${line}" stroke-width="2"/>
+    ${mk}
+  </svg>`;
+}
+function drawCourt(){
+  const wrap=document.getElementById("courtWrap");
+  wrap.innerHTML=courtSVGString(draft.hotZones,"courtSvg");
+  const svg=document.getElementById("courtSvg");
+  svg.addEventListener("click",courtClick);
+  updateSpotUI();
+}
+function courtClick(evt){
+  const svg=document.getElementById("courtSvg");
+  const r=svg.getBoundingClientRect();
+  if(!r.width) return;
+  addShotAt((evt.clientX-r.left)/r.width, (evt.clientY-r.top)/r.height);
+}
+function addShotAt(xN,yN){
+  xN=Math.max(0,Math.min(1,xN)); yN=Math.max(0,Math.min(1,yN));
+  const x=xN*500,y=yN*470;
+  const hit=draft.hotZones.findIndex(z=>Math.hypot(z.x*500-x,z.y*470-y)<24);
+  if(hit>=0){ const z=draft.hotZones[hit]; if(z.w===1)z.w=2; else draft.hotZones.splice(hit,1); }
+  else { if(draft.hotZones.length>=12){toast("Max 12 spots — remove one first");return;}
+    draft.hotZones.push({x:+xN.toFixed(3),y:+yN.toFixed(3),w:1,zone:classifyZone(xN,yN)}); }
+  drawCourt();
+}
+function updateSpotUI(){
+  const n=draft.hotZones.length;
+  document.getElementById("spotCount").textContent=n+(n===1?" spot":" spots");
+  document.getElementById("zoneChips").innerHTML=draft.hotZones
+    .map(z=>`<span class="zone-chip ${z.w===2?'love':''}">${z.w===2?'❤️ ':'• '}${pretty(z.zone)}</span>`).join("");
+}
+/* ---- Summary / reward card ---- */
+function archetype(r,pos){
+  const top=Object.entries(r).sort((a,b)=>b[1]-a[1])[0][0];
+  const map={shooting:"The Sniper",defense:"The Lockdown",playmaking:"The Maestro",
+    rebounding:"The Vacuum",iq:"The Professor",fitness:"The Engine"};
+  if(r.shooting>=8&&r.iq>=8) return "The Old-Man Game";
+  return map[top]||"The Hooper";
+}
+function renderSummary(){
+  const r=draft.ratings;
+  const arch=archetype(r,draft.position);
+  const loves=draft.hotZones.filter(z=>z.w===2).map(z=>pretty(z.zone));
+  const likes=draft.hotZones.filter(z=>z.w===1).map(z=>pretty(z.zone));
+  const zoneLine = draft.hotZones.length
+    ? (loves.length?`<b>Loves:</b> ${loves.join(", ")}. `:"")+(likes.length?`<b>Likes:</b> ${likes.join(", ")}.`:"")
+    : "No hot zones marked yet — go back and tap the court!";
+  const stats=RATING_META.map(([k,label,emoji])=>`
+    <div class="st">${emoji} ${label} <b style="float:right">${r[k]}</b><div class="b"><span style="width:${r[k]*10}%"></span></div></div>`).join("");
+  document.getElementById("summaryCard").innerHTML=`
+    <div class="sumcard">
+      <div class="badge">${draft.available?"AVAILABLE":"HIT OR MISS"}</div>
+      <h2>${esc(draft.name||"Your name")}</h2>
+      <div class="arch">${draft.position||"?"} · ${arch}</div>
+      <div class="court-wrap" style="max-width:260px">${courtSVGString(draft.hotZones,"sumCourt")}</div>
+      <div class="sum-stats">${stats}</div>
+      <p class="small" style="color:var(--muted);margin:6px 0 0">${zoneLine}</p>
+    </div>`;
+}
+function commitProfile(){
+  if(!draft.name.trim()){toast("Add your name first");wizGo(1);return;}
+  const r=draft.ratings;
+  const payload={number:draft.number||"",name:draft.name.trim(),position:draft.position||"",
+    shooting:r.shooting,defense:r.defense,playmaking:r.playmaking,rebounding:r.rebounding,
+    iq:r.iq,fitness:r.fitness,available:draft.available,notes:"",
+    hotZones:draft.hotZones.map(z=>({x:z.x,y:z.y,w:z.w,zone:z.zone}))};
+  const ftM=Math.max(0,Math.floor(+document.getElementById("obFtMakes").value||0));
+  const ftA=Math.floor(+document.getElementById("obFtAtt").value||0);
+  const ftEntry=(ftA>0)?{date:todayStr(),drill:"Free Throws",makes:Math.min(ftM,ftA),attempts:ftA}:null;
+  const ex=state.players.find(p=>p.name.toLowerCase()===payload.name.toLowerCase());
+  if(ex){ Object.assign(ex,payload); if(!ex.practice)ex.practice=[]; if(ftEntry)ex.practice.push(ftEntry); }
+  else { payload.id=_id++; payload.practice=ftEntry?[ftEntry]:[]; state.players.push(payload); }
+  _resyncAll();
+  document.getElementById("wizardCard").style.display="none";
+  document.querySelector("#view-getin .hero").innerHTML=
+    `<h2>You're in, ${esc(payload.name)}! 🙌</h2>
+     <p>Your profile and hot zones are saved to the squad roster.</p>
+     <div class="row" style="justify-content:center">
+       <button class="btn" onclick="location.hash='';document.querySelector('#nav button[data-view=roster]').click()">See the roster</button>
+       <button class="btn sec" onclick="startOnboard()">Add another player</button>
+     </div>`;
+  toast("Welcome to the squad, "+payload.name+"!");
+}
+/* zone <-> text helpers for the Google Sheet hot_zones column */
+function zonesToText(hz){ return (hz||[]).map(z=>z.zone+(z.w===2?"!":"")).join(", "); }
+function zonesFromText(txt){
+  if(!txt)return [];
+  return String(txt).split(/[;,]/).map(s=>s.trim()).filter(Boolean)
+    .map(s=>({zone:s.replace(/!$/,"").replace(/\s+/g,"-").toLowerCase(),w:/!$/.test(s)?2:1}));
+}
+
+/* ---------- Sync everything ---------- */
+function _resyncAll(){
+  selectedLineup=selectedLineup.filter(id=>state.players.some(p=>p.id===id&&p.available));
+  renderRoster(); renderPickList(); analyzeLineup(); setBanner(); renderSetPlays(); renderShooting(); renderHouses();
+  if(state.csvUrl)document.getElementById("csvUrl").value=state.csvUrl;
+}
+
+/* ---------- Init (bball) ---------- */
+state.players=sampleData();
+state.setPlays=seedSetPlays();
+_resyncAll();
+// expose for tests
+window.__bball={state,playersFromCSV,parseCSV,overall,buildRotation,
+  startOnboard,wizGo,addShotAt,classifyZone,commitProfile,zonesToText,zonesFromText,
+  logPractice,ftLeaderboard,drillStats,renderShooting,
+  get draft(){return draft;}, get selectedLineup(){return selectedLineup;}};
+</script>
+</body>
+</html>
