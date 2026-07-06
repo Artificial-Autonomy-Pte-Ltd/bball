@@ -186,3 +186,6 @@ columns — publish it to CSV and paste the URL into the Data tab to go live.
 | `README.md` | This file |
 | `.gitignore` | Excludes Dropbox/OS junk and local backups |
 
+
+
+<!-- redeploy trigger: form persistence + card view live -->
