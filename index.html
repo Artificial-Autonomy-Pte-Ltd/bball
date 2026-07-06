@@ -259,7 +259,7 @@
           <p class="hint" style="margin:6px 0 0">Puts you straight on the Shooting leaderboard.</p>
         </div>
         <div class="wiz-nav"><button class="btn sec" onclick="wizGo(3)">← Tweak</button><button class="btn" onclick="commitProfile()">Add me to the squad ✅</button></div>
-        <p class="hint" style="text-align:center;margin-top:10px">This adds you to the in-memory roster. To share with the team, the owner wires up the Google Sheet (Data tab).</p>
+        <p class="hint" style="text-align:center;margin-top:10px">Tapping this saves your profile to the team's shared sheet ✓ (and adds you to this roster view).</p>
       </div>
     </div>
   </section>
@@ -457,6 +457,14 @@
   </div>
 </div>
 
+<!-- PLAYER CARD MODAL -->
+<div class="modal-bg" id="cardModal">
+  <div class="modal" style="max-width:340px">
+    <div id="cardModalBody"></div>
+    <div class="row" style="margin-top:12px"><button class="btn sec" onclick="closeCardModal()">Close</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -545,7 +553,7 @@ function renderRoster(){
       <td class="num">${pl.rebounding}</td><td class="num">${pl.iq}</td>
       <td class="num" style="color:${fitColor(pl.fitness)}">${pl.fitness}</td>
       <td class="num"><b>${overall(pl)}</b></td>
-      <td><button class="btn sec sm" onclick="openPlayer(${pl.id})">Edit</button></td>`;
+      <td style="white-space:nowrap"><button class="btn sec sm" onclick="viewPlayerCard(${pl.id})">Card</button> <button class="btn sec sm" onclick="openPlayer(${pl.id})">Edit</button></td>`;
     b.appendChild(tr);
   });
   document.getElementById("rosterCount").textContent=`· ${adults.length} players, ${adults.filter(x=>x.available).length} available`;
@@ -1235,6 +1243,42 @@ function renderSummary(){
       <p class="small" style="color:var(--muted);margin:6px 0 0">${zoneLine}</p>
     </div>`;
 }
+/* View any roster player's card (archetype + shot chart) in a modal */
+function viewPlayerCard(id){
+  const pl=state.players.find(x=>x.id===id); if(!pl)return;
+  const r={shooting:pl.shooting,defense:pl.defense,playmaking:pl.playmaking,rebounding:pl.rebounding,iq:pl.iq,fitness:pl.fitness};
+  const arch=archetype(r,pl.position);
+  const hz=pl.hotZones||[];
+  const loves=hz.filter(z=>z.w===2).map(z=>pretty(z.zone));
+  const likes=hz.filter(z=>z.w===1).map(z=>pretty(z.zone));
+  const zoneLine=hz.length ? (loves.length?`<b>Loves:</b> ${loves.join(", ")}. `:"")+(likes.length?`<b>Likes:</b> ${likes.join(", ")}.`:"") : "No hot zones marked yet — open Get In to add some.";
+  const stats=RATING_META.map(([k,label,emoji])=>`
+    <div class="st">${emoji} ${label} <b style="float:right">${r[k]}</b><div class="b"><span style="width:${r[k]*10}%"></span></div></div>`).join("");
+  document.getElementById("cardModalBody").innerHTML=`
+    <div class="sumcard">
+      <div class="badge">${pl.available?"AVAILABLE":"OUT"}</div>
+      <h2>${pl.number!==""&&pl.number!=null?"#"+esc(String(pl.number))+" ":""}${esc(pl.name)}</h2>
+      <div class="arch">${esc(pl.position||"?")}${pl.pos2?" / "+esc(pl.pos2):""} · ${arch}${pl.house?" · "+esc(pl.house):""}</div>
+      <div class="court-wrap" style="max-width:240px">${courtSVGString(hz,"cardCourt"+id)}</div>
+      <div class="sum-stats">${stats}</div>
+      <p class="small" style="color:var(--muted);margin:6px 0 0">${zoneLine}</p>
+    </div>`;
+  document.getElementById("cardModal").classList.add("show");
+}
+function closeCardModal(){ document.getElementById("cardModal").classList.remove("show"); }
+/* Persist a submission to the shared Google Form -> responses Sheet (fire-and-forget) */
+const FORM_URL="https://docs.google.com/forms/d/e/1FAIpQLSfj4VPjhzYBIFa_HpPohUjJAleMEQenWoq41t818zgpSXqscg/formResponse";
+const FORM_ENTRY={number:"entry.901236318",name:"entry.1242854080",position:"entry.1116330997",pos2:"entry.335543554",shooting:"entry.6487671",defense:"entry.533073451",playmaking:"entry.1702641622",rebounding:"entry.1581942534",iq:"entry.1817345184",fitness:"entry.670557814",available:"entry.1451204742",notes:"entry.647270361",hot_zones:"entry.1786142678",house:"entry.242365828"};
+function submitToForm(p){
+  try{
+    const hz=(p.hotZones||[]).map(z=>z.zone+(z.w===2?"!":"")).join(", ");
+    const vals={number:p.number,name:p.name,position:p.position,pos2:p.pos2,shooting:p.shooting,defense:p.defense,
+      playmaking:p.playmaking,rebounding:p.rebounding,iq:p.iq,fitness:p.fitness,
+      available:p.available?"TRUE":"FALSE",notes:p.notes,hot_zones:hz,house:p.house};
+    const body=Object.keys(FORM_ENTRY).map(k=>FORM_ENTRY[k]+"="+encodeURIComponent(vals[k]==null?"":vals[k])).join("&");
+    fetch(FORM_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded"},body}).catch(()=>{});
+  }catch(e){ /* never block the local add */ }
+}
 function commitProfile(){
   if(!draft.name.trim()){toast("Add your name first");wizGo(1);return;}
   const r=draft.ratings;
@@ -1248,11 +1292,12 @@ function commitProfile(){
   const ex=state.players.find(p=>p.name.toLowerCase()===payload.name.toLowerCase());
   if(ex){ Object.assign(ex,payload); if(!ex.practice)ex.practice=[]; if(ftEntry)ex.practice.push(ftEntry); }
   else { payload.id=_id++; payload.practice=ftEntry?[ftEntry]:[]; state.players.push(payload); }
+  submitToForm(ex||payload);   // persist to the shared team sheet
   _resyncAll();
   document.getElementById("wizardCard").style.display="none";
   document.querySelector("#view-getin .hero").innerHTML=
     `<h2>You're in, ${esc(payload.name)}! 🙌</h2>
-     <p>Your profile and hot zones are saved to the squad roster.</p>
+     <p>Saved to the team ✓ — the owner now sees your profile in the shared roster sheet.</p>
      <div class="row" style="justify-content:center">
        <button class="btn" onclick="location.hash='';document.querySelector('#nav button[data-view=roster]').click()">See the roster</button>
        <button class="btn sec" onclick="startOnboard()">Add another player</button>
