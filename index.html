@@ -192,19 +192,27 @@
 
   <!-- GET IN (player onboarding) -->
   <section class="view active" id="view-getin">
-    <div class="hero">
-      <h2>Claim your spot 🏀</h2>
-      <p>We run craft, spacing &amp; smart shots — not track meets. Tell us your game and drop your hot zones. Takes 60 seconds.</p>
-      <button class="btn" onclick="startOnboard()" id="startBtn">Get started</button>
+    <div class="hero" id="courtHero">
+      <h2>Claim your spots 🏀</h2>
+      <p>Tap the court where you love to score — pick your favorite scoring positions. Then drop your number &amp; name to join the squad.</p>
+      <div class="court-wrap" id="courtWrap"></div>
+      <div class="court-legend">
+        <span><span class="dot-like"></span> Like it</span>
+        <span><span class="dot-love"></span> Love it</span>
+        <span id="spotCount">0 spots</span>
+      </div>
+      <div id="zoneChips" style="margin-top:10px;text-align:center"></div>
+      <p class="hint" style="text-align:center;margin-top:6px">Tap a spot again to cycle: like → <b>love</b> → remove.</p>
+      <div style="margin-top:14px"><button class="btn" onclick="continueFromCourt()" id="startBtn">Next: number &amp; name →</button></div>
     </div>
 
     <div class="card" id="wizardCard" style="display:none">
-      <div class="steps-dots" id="stepDots"><i></i><i></i><i></i><i></i></div>
+      <div class="steps-dots" id="stepDots"><i></i><i></i><i></i></div>
 
-      <!-- Step 1: name + position -->
+      <!-- Step 1: number + name + position -->
       <div class="step" id="step1">
         <h3>Who's balling?</h3>
-        <p class="sub">Your name, number, and where you play best.</p>
+        <p class="sub">Your number, name, and where you play best.</p>
         <div class="row">
           <div style="flex:0 0 90px"><label>Jersey #</label><input type="number" id="obNum" placeholder="#"></div>
           <div style="flex:1"><label>Name / nickname</label><input id="obName" placeholder="e.g. Big Mike, Splash, Unc"></div>
@@ -217,7 +225,7 @@
           <button data-pos="PF">PF<small>forward</small></button>
           <button data-pos="C">C<small>big</small></button>
         </div>
-        <div class="wiz-nav"><button class="btn" onclick="wizNext(1)">Next →</button></div>
+        <div class="wiz-nav"><button class="btn sec" onclick="backToCourt()">← Court</button><button class="btn" onclick="wizNext(1)">Next →</button></div>
       </div>
 
       <!-- Step 2: sliders -->
@@ -230,25 +238,11 @@
           <button class="yes" data-av="1">I'm in ✅</button>
           <button class="no" data-av="0">Hit or miss</button>
         </div>
-        <div class="wiz-nav"><button class="btn sec" onclick="wizGo(1)">← Back</button><button class="btn" onclick="wizNext(2)">Next →</button></div>
+        <div class="wiz-nav"><button class="btn sec" onclick="wizGo(1)">← Back</button><button class="btn" onclick="wizNext(2)">See my card →</button></div>
       </div>
 
-      <!-- Step 3: shot chart -->
+      <!-- Step 3: summary card -->
       <div class="step" id="step3">
-        <h3>Drop your hot zones 🔥</h3>
-        <p class="sub">Tap the court where you love to score. Tap a spot again: like → <b>love</b> → remove.</p>
-        <div class="court-wrap" id="courtWrap"></div>
-        <div class="court-legend">
-          <span><span class="dot-like"></span> Like it</span>
-          <span><span class="dot-love"></span> Love it</span>
-          <span id="spotCount">0 spots</span>
-        </div>
-        <div id="zoneChips" style="margin-top:10px;text-align:center"></div>
-        <div class="wiz-nav"><button class="btn sec" onclick="wizGo(2)">← Back</button><button class="btn" onclick="wizNext(3)">See my card →</button></div>
-      </div>
-
-      <!-- Step 4: summary card -->
-      <div class="step" id="step4">
         <div id="summaryCard"></div>
         <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px;background:var(--panel2)">
           <label style="margin-top:0">🎯 Log a quick free-throw session? <span class="muted">(optional)</span></label>
@@ -258,10 +252,12 @@
           </div>
           <p class="hint" style="margin:6px 0 0">Puts you straight on the Shooting leaderboard.</p>
         </div>
-        <div class="wiz-nav"><button class="btn sec" onclick="wizGo(3)">← Tweak</button><button class="btn" onclick="commitProfile()">Add me to the squad ✅</button></div>
+        <div class="wiz-nav"><button class="btn sec" onclick="wizGo(2)">← Tweak</button><button class="btn" onclick="commitProfile()">Add me to the squad ✅</button></div>
         <p class="hint" style="text-align:center;margin-top:10px">Tapping this saves your profile to the team's shared sheet ✓ (and adds you to this roster view).</p>
       </div>
     </div>
+
+    <div class="card" id="doneCard" style="display:none"></div>
   </section>
 
   <!-- ROSTER -->
@@ -1080,24 +1076,37 @@ let draft=null, curStep=1;
 function newDraft(){ return {number:"",name:"",position:"",available:true,
   ratings:{shooting:6,defense:6,playmaking:6,rebounding:6,iq:6,fitness:6}, hotZones:[]}; }
 
+/* Landing: reset everything and show the interactive court hero */
 function startOnboard(){
   draft=newDraft(); curStep=1;
-  document.getElementById("wizardCard").style.display="";
-  document.getElementById("startBtn").textContent="Restart";
+  document.getElementById("doneCard").style.display="none";
+  document.getElementById("courtHero").style.display="";
+  document.getElementById("wizardCard").style.display="none";
   document.getElementById("obName").value=""; document.getElementById("obNum").value="";
   document.getElementById("obFtMakes").value=""; document.getElementById("obFtAtt").value="";
   [...document.getElementById("posPick").children].forEach(x=>x.classList.remove("sel"));
   [...document.getElementById("availPick").children].forEach((x,i)=>x.classList.toggle("sel",i===0));
-  renderSliders(); drawCourt(); wizGo(1);
+  renderSliders(); drawCourt();
+  document.getElementById("courtHero").scrollIntoView({behavior:"smooth",block:"start"});
+}
+/* Court → details: require at least one favorite spot before moving on */
+function continueFromCourt(){
+  if(!draft) draft=newDraft();
+  if(draft.hotZones.length<1){ toast("Tap the court to pick at least one spot 🏀"); return; }
+  document.getElementById("wizardCard").style.display="";
+  wizGo(1);
   document.getElementById("wizardCard").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function backToCourt(){
+  document.getElementById("wizardCard").style.display="none";
+  document.getElementById("courtHero").scrollIntoView({behavior:"smooth",block:"start"});
 }
 function wizGo(n){
   curStep=n;
-  for(let i=1;i<=4;i++)document.getElementById("step"+i).classList.toggle("on",i===n);
+  for(let i=1;i<=3;i++)document.getElementById("step"+i).classList.toggle("on",i===n);
   const dots=document.getElementById("stepDots").children;
-  for(let i=0;i<4;i++)dots[i].classList.toggle("on",i===n-1);
-  if(n===3)drawCourt();
-  if(n===4)renderSummary();
+  for(let i=0;i<3;i++)dots[i].classList.toggle("on",i===n-1);
+  if(n===3)renderSummary();
 }
 function wizNext(from){
   if(from===1){ if(!draft.name.trim()){toast("Add your name");return;} if(!draft.position){toast("Pick a position");return;} }
@@ -1295,13 +1304,17 @@ function commitProfile(){
   submitToForm(ex||payload);   // persist to the shared team sheet
   _resyncAll();
   document.getElementById("wizardCard").style.display="none";
-  document.querySelector("#view-getin .hero").innerHTML=
+  document.getElementById("courtHero").style.display="none";
+  const done=document.getElementById("doneCard");
+  done.style.display="";
+  done.innerHTML=
     `<h2>You're in, ${esc(payload.name)}! 🙌</h2>
-     <p>Saved to the team ✓ — the owner now sees your profile in the shared roster sheet.</p>
-     <div class="row" style="justify-content:center">
+     <p class="hint">Saved to the team ✓ — the owner now sees your profile and hot zones in the shared roster sheet.</p>
+     <div class="row" style="justify-content:center;margin-top:10px">
        <button class="btn" onclick="location.hash='';document.querySelector('#nav button[data-view=roster]').click()">See the roster</button>
        <button class="btn sec" onclick="startOnboard()">Add another player</button>
      </div>`;
+  done.scrollIntoView({behavior:"smooth",block:"start"});
   toast("Welcome to the squad, "+payload.name+"!");
 }
 /* zone <-> text helpers for the Google Sheet hot_zones column */
@@ -1323,9 +1336,11 @@ function _resyncAll(){
 state.players=sampleData();
 state.setPlays=seedSetPlays();
 _resyncAll();
+// Draw the interactive court on the landing page right away
+draft=newDraft(); renderSliders(); drawCourt();
 // expose for tests
 window.__bball={state,playersFromCSV,parseCSV,overall,buildRotation,
-  startOnboard,wizGo,addShotAt,classifyZone,commitProfile,zonesToText,zonesFromText,
+  startOnboard,continueFromCourt,backToCourt,wizGo,addShotAt,classifyZone,commitProfile,zonesToText,zonesFromText,
   logPractice,ftLeaderboard,drillStats,renderShooting,
   get draft(){return draft;}, get selectedLineup(){return selectedLineup;}};
 </script>
